@@ -1,13 +1,13 @@
 
 
 use crate::robot::state::RobotState;
-use crate::robot::control::ControlInput;
+use crate::robot::control::ControlData;
 
 pub trait KinematicsModel {
     fn predict_state(
         &self,
         current_state: &RobotState,
-        control_input: &ControlInput,
+        control_input: &ControlData,
         dt: f32,
     ) -> RobotState;
 }
@@ -19,7 +19,7 @@ impl KinematicsModel for DifferentialDrive {
     fn predict_state(
         &self,
         current_state: &RobotState,
-        control_input: &ControlInput,
+        control_input: &ControlData,
         dt: f32,
     ) -> RobotState {
         let v = control_input.velocity;

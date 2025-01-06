@@ -1,13 +1,12 @@
 
 use crate::robot::state::RobotState;
-use crate::robot::state::Position;
 
-pub struct ControlInput {
+pub struct ControlData {
     pub velocity: f32,
     pub angular_velocity: f32,
 }
 
-impl ControlInput {
+impl ControlData {
     pub fn new(velocity: f32, angular_velocity: f32) -> Self {
         Self {
             velocity,
@@ -17,6 +16,5 @@ impl ControlInput {
 }
 
 pub trait ControlAlgorithm {
-    fn calculate_input(&self, state: &RobotState, dt: f32) -> ControlInput;
-    fn set_target(&mut self, target: &Position);
+    fn calculate_input(&self, state: &RobotState, target_velocity: &ControlData, dt: f32) -> ControlData;
 }

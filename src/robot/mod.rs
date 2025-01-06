@@ -8,16 +8,20 @@ pub mod kinematics;
 pub use state::RobotState;
 pub use sensors::Sensor;
 pub use control::ControlAlgorithm;
+pub use control::ControlData;
 pub use kinematics::KinematicsModel;
 
+use crate::planning::LocalPathPlanner;
 use crate::prelude::*;
 
 pub struct Robot {
     pub sensors: Vec<Box<dyn Sensor>>,
     pub control: Box<dyn ControlAlgorithm>,
     pub localization: Box<dyn LocalizationAlgorithm>,
-    pub planner: Box<dyn PathPlanner>,
-    pub kinematics: Box<dyn KinematicsModel>
+    pub global_planner: Box<dyn GlobalPathPlanner>,
+    pub local_planner: Box<dyn LocalPathPlanner>,
+    pub kinematics: Box<dyn KinematicsModel>,
+    dt: f32,
 }
 
 impl Robot {
@@ -27,42 +31,46 @@ impl Robot {
         self
     }
 
-    
-    pub fn update(&mut self, dt: f32, state: &mut RobotState, environment: &Environment) {
-
+    pub fn localize(&mut self, state: &RobotState, environment: &Environment, dt: f32) {
         let mut measurements = Vec::new();
         for sensor in &self.sensors {
             measurements.push(sensor.measure(state, environment));
         }
 
-        *state = self.localization.update(state, &measurements, dt);
-
-        let control_input = self.control.calculate_input(state, dt);
-        
-        *state = self.kinematics.predict_state(state, &control_input, dt);
-
-        state.odometry.update(control_input.velocity * dt, 0.0, control_input.angular_velocity * dt);
-
-        state.velocity.linear = control_input.velocity;
-        state.velocity.angular = control_input.angular_velocity;
-       
+        self.localization.update(state, &measurements, dt)
     }
 
-    pub fn plan_path_and_execute(&mut self, goal: Position, state: &mut RobotState, environment: &Environment) {
-        let path = self.planner.plan_path(&state.position, &goal, environment);
+    
+    pub fn run_motion_control(&mut self, dt: f32, state: &mut RobotState, target_velocity: &ControlData) {
+        
+        let control_output = self.control.calculate_input(state, target_velocity,  dt);
+        
+        *state = self.kinematics.predict_state(state, &control_output, dt);
 
-        println!("Planned path: {:?}", path);
+        state.odometry.update(control_output.velocity * dt, 
+            0.0, 
+            control_output.angular_velocity * dt);       
 
-        for waypoint in path {
-                self.control.set_target(&waypoint);
+        state.velocity.linear = control_output.velocity;
+        state.velocity.angular = control_output.angular_velocity;
+    }
 
-                // Simulate moving toward the waypoint
-                while !self.reached_waypoint(&state.position, &waypoint, None) {
-                    self.update(0.1, state, environment); 
+    pub fn plan_path_and_execute(&mut self, goal: Position, state: &mut RobotState, environment: &Environment) -> Vec<RobotState> {
+        let path = self.global_planner.plan_path(&state.position, &goal, environment);
+        let mut robot_states: Vec<RobotState> = Vec::new();
+
+        for waypoint in &path {
+                while !self.reached_waypoint(&state.position, &waypoint, None) {                  ;
+                    let target_velocity = self.local_planner.plan_path(&state.position, waypoint, environment);
+                    self.run_motion_control(self.dt, state, &target_velocity); 
+                    self.localize(state, environment, self.dt);
+                    robot_states.push(state.clone());
             }
         }
 
         println!("Reached the goal!");
+
+        robot_states
     }
 
     fn reached_waypoint(&self, position: &Position, waypoint: &Position, tolerance: Option<f32>) -> bool {

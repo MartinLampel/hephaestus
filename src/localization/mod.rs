@@ -9,5 +9,5 @@ pub trait LocalizationAlgorithm {
         state: &RobotState,
         measurements: &Vec<SensorMeasurement>,
         dt: f32,
-    ) -> RobotState;
+    );
 }
