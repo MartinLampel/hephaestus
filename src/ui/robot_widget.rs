@@ -1,7 +1,9 @@
 
-use super::{UIElement};
+use super::{Widget};
 
-use macroquad::{color::{BLACK, BLUE}, math::RectOffset, shapes::{draw_circle, draw_line, draw_rectangle}};
+use macroquad::{color::BLUE, color::BLACK, color::GOLD, shapes::{draw_line, draw_poly, draw_circle}};
+
+const RAD_TO_DEG: f32 = 180.0/std::f32::consts::PI;
 
 pub struct RobotWidget {
     pub x: f32,
@@ -27,16 +29,17 @@ impl RobotWidget {
     }
 }
 
-impl UIElement for RobotWidget {
+impl Widget for RobotWidget {
     fn render(&self) {
         draw_circle(self.x, self.y, self.radius, BLUE);
+        draw_poly(self.x, self.y, 3, 5.0, self.angle * RAD_TO_DEG, GOLD);
 
         let offsets = [-self.radius - self.wheel_width / 2.0, self.radius + self.wheel_width / 2.0];
        
-        let orientation = self.angle;// + std::f32::consts::FRAC_PI_2;
+        let orientation = self.angle;
         for offset in offsets {
             let x_start = self.x + (self.wheel_length/2.0  * f32::cos(self.angle) - offset * f32::sin(self.angle));
-            let y_start = self.y + (self.wheel_length/2.0  * f32::sin(self.angle) + RectOffset * f32::cos(self.angle));
+            let y_start = self.y + (self.wheel_length/2.0  * f32::sin(self.angle) + offset * f32::cos(self.angle));
             draw_line(
                 x_start, y_start, 
                 x_start - self.wheel_length * f32::cos(orientation), 

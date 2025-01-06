@@ -4,7 +4,7 @@ use macroquad::{color::WHITE, color::LIGHTGRAY, shapes::{draw_line, draw_rectang
 
 use crate::environment::GridMap;
 
-use super::{UIElement, UIGrid};
+use super::{Widget, UIGrid};
 
 pub struct GridMapWidget<'a> {
     pub grid_map: &'a GridMap,
@@ -33,7 +33,7 @@ impl <'a> GridMapWidget<'a> {
     }
 }
 
-impl <'a> UIElement for GridMapWidget<'a> {
+impl <'a> Widget for GridMapWidget<'a> {
 
     fn render(&self) {
 
